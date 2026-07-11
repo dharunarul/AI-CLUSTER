@@ -1,0 +1,39 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/firebase-admin";
+
+export async function POST(request) {
+  try {
+    const { idToken } = await request.json();
+
+    if (!idToken) {
+      return NextResponse.json(
+        { error: "ID token is required" },
+        { status: 400 }
+      );
+    }
+
+    const expiresIn = 60 * 60 * 24 * 7 * 1000;
+
+    const sessionCookie = await auth.createSessionCookie(idToken, {
+      expiresIn,
+    });
+
+    const response = NextResponse.json({ success: true });
+
+    response.cookies.set("token", sessionCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Session creation error:", error);
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 401 }
+    );
+  }
+}
