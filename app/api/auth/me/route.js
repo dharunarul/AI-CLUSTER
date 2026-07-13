@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth as adminAuth, db } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export async function GET(request) {
   const token = request.cookies.get("token")?.value;
@@ -9,8 +9,8 @@ export async function GET(request) {
   }
 
   try {
-    const decoded = await adminAuth.verifySessionCookie(token, true);
-    const userDoc = await db.collection("users").doc(decoded.uid).get();
+    const decoded = await getAdminAuth().verifySessionCookie(token, true);
+    const userDoc = await getAdminDb().collection("users").doc(decoded.uid).get();
 
     if (!userDoc.exists) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

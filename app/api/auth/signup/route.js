@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth as adminAuth, db } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export async function POST(request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request) {
       );
     }
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
     if (decoded.uid !== uid) {
       return NextResponse.json(
         { error: "Token UID does not match provided UID" },
@@ -20,7 +20,7 @@ export async function POST(request) {
       );
     }
 
-    await db.collection("users").doc(uid).set({
+    await getAdminDb().collection("users").doc(uid).set({
       name,
       email,
       createdAt: new Date().toISOString(),
