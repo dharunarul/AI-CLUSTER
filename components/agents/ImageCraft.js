@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const styles = [
   { id: "realistic", label: "Realistic", prefix: "photorealistic, highly detailed, 8k" },
@@ -11,6 +11,8 @@ const styles = [
   { id: "oil", label: "Oil Painting", prefix: "oil painting, classical art, textured canvas, masterwork" },
 ];
 
+const NEGATIVE_PROMPT = "blurry, low quality, distorted, deformed, watermark, text";
+
 export default function ImageCraft({ agent }) {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("realistic");
@@ -19,6 +21,15 @@ export default function ImageCraft({ agent }) {
   const [error, setError] = useState("");
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [history, setHistory] = useState([]);
+  const imageUrlRef = useRef(null);
+  const historyRef = useRef([]);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      historyRef.current.forEach((item) => URL.revokeObjectURL(item.url));
+    };
+  }, []);
 
   async function handleGenerate() {
     if (!prompt.trim()) return;
@@ -30,34 +41,50 @@ export default function ImageCraft({ agent }) {
     const fullPrompt = `${stylePrefix}, ${prompt.trim()}`;
     setCurrentPrompt(fullPrompt);
 
-    const seed = Math.floor(Math.random() * 999999);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=512&height=512&seed=${seed}&nologo=true`;
-
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = url;
-        setTimeout(() => reject(new Error("Image generation timed out")), 30000);
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: fullPrompt,
+          negative_prompt: NEGATIVE_PROMPT,
+          width: 1024,
+          height: 1024,
+        }),
       });
 
-      setImageUrl(url);
-      setHistory((prev) => [
-        { url, prompt: prompt.trim(), style, seed },
-        ...prev.slice(0, 5),
-      ]);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `Request failed (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      setImageUrl(objectUrl);
+      imageUrlRef.current = objectUrl;
+      setHistory((prev) => {
+        const evicted = prev.slice(5);
+        evicted.forEach((item) => URL.revokeObjectURL(item.url));
+        const next = [
+          { url: objectUrl, blob, prompt: prompt.trim(), style },
+          ...prev.slice(0, 5),
+        ];
+        historyRef.current = next;
+        return next;
+      });
     } catch (err) {
-      setError("Image generation failed. Please try again with a different prompt.");
+      setError(err.message || "Image generation failed. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   function loadFromHistory(item) {
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
     setImageUrl(item.url);
+    imageUrlRef.current = item.url;
     setPrompt(item.prompt);
     setStyle(item.style);
     setCurrentPrompt(`${styles.find((s) => s.id === item.style)?.prefix || ""}, ${item.prompt}`);
@@ -158,7 +185,7 @@ export default function ImageCraft({ agent }) {
           <p className="text-sm text-blue-400 animate-pulse">
             AI is creating your image...
           </p>
-          <p className="text-xs text-gray-500 mt-1">This may take 10-20 seconds</p>
+          <p className="text-xs text-gray-500 mt-1">This may take 10-30 seconds</p>
         </div>
       )}
 

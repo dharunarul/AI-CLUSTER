@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { decodeJwt } from "jose";
+import { rateLimit } from "@/lib/rateLimit";
 
 function verifySessionToken(token) {
   if (!token) return false;
@@ -17,6 +18,26 @@ function verifySessionToken(token) {
 export async function middleware(request) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api/")) {
+    const isImageGen = pathname === "/api/generate-image";
+    const { allowed, retryAfter } = rateLimit(request, {
+      windowMs: 60000,
+      max: isImageGen ? 10 : 30,
+    });
+
+    if (!allowed) {
+      return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfter),
+        },
+      });
+    }
+
+    return NextResponse.next();
+  }
 
   const isAuthPage =
     pathname.startsWith("/signin") || pathname.startsWith("/signup");
@@ -36,5 +57,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/agents/:path*", "/signin", "/signup"],
+  matcher: ["/home/:path*", "/agents/:path*", "/signin", "/signup", "/api/:path*"],
 };

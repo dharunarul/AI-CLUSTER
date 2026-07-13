@@ -99,13 +99,13 @@ function analyzeSEO(content) {
   const suggestions = [];
   let score = 50;
 
-  if (chars < 300) {
+  if (words.length < 300) {
     suggestions.push({
       text: "Content is too short. Aim for at least 300+ words for better SEO.",
       severity: "high",
       impact: 15,
     });
-  } else if (chars < 1000) {
+  } else if (words.length < 1000) {
     suggestions.push({
       text: "Content could be longer. 1000+ words typically rank better.",
       severity: "medium",
@@ -234,7 +234,7 @@ function analyzeSEO(content) {
     score += 8;
   }
 
-  score = Math.max(5, Math.min(98, score + (chars > 500 ? 5 : 0) + (topKeywords.length >= 3 ? 5 : 0)));
+  score = Math.max(5, Math.min(98, score + (words.length > 500 ? 5 : 0) + (topKeywords.length >= 3 ? 5 : 0)));
 
   return {
     score,

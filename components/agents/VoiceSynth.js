@@ -432,12 +432,6 @@ export default function VoiceSynth({ agent }) {
         )}
       </div>
 
-      <style jsx>{`
-        @keyframes waveform-bar {
-          0% { transform: scaleY(0.6); }
-          100% { transform: scaleY(1.2); }
-        }
-      `}</style>
     </div>
   );
 }
