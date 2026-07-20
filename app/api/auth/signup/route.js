@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export async function POST(request) {
   try {
@@ -12,6 +11,7 @@ export async function POST(request) {
       );
     }
 
+    const { getAdminAuth, getAdminDb } = await import("@/lib/firebase-admin");
     const decoded = await getAdminAuth().verifyIdToken(idToken);
     if (decoded.uid !== uid) {
       return NextResponse.json(

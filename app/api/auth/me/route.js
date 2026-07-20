@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export async function GET(request) {
   const token = request.cookies.get("token")?.value;
@@ -9,6 +8,7 @@ export async function GET(request) {
   }
 
   try {
+    const { getAdminAuth, getAdminDb } = await import("@/lib/firebase-admin");
     const decoded = await getAdminAuth().verifySessionCookie(token, true);
     const userDoc = await getAdminDb().collection("users").doc(decoded.uid).get();
 
