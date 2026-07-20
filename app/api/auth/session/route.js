@@ -32,7 +32,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Session creation error:", error);
     return NextResponse.json(
-      { error: "Failed to create session" },
+      { error: "Failed to create session", details: error.message },
       { status: 401 }
     );
   }
