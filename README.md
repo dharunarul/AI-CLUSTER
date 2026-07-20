@@ -28,6 +28,7 @@ An AI agent marketplace built with Next.js 14, featuring 10 functional AI agents
 | Styling | Tailwind CSS 3.4 |
 | Auth | Firebase Auth (Client SDK + Admin SDK) |
 | Session | httpOnly cookies with jose JWT decoding |
+| Rate Limiting | Upstash Redis (serverless-friendly) |
 | Math Engine | math.js |
 | Fonts | System fonts (Arial/Helvetica) |
 
@@ -35,8 +36,9 @@ An AI agent marketplace built with Next.js 14, featuring 10 functional AI agents
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - A Firebase project with Authentication enabled
+- An Upstash Redis account (free tier available)
 
 ### 1. Clone and install
 
@@ -69,7 +71,19 @@ FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 ```
 
-### 3. Run
+### 3. Set up Upstash Redis
+
+1. Go to [upstash.com](https://upstash.com) and create a free account
+2. Click "Create Database" and choose Redis
+3. Select a region close to your Vercel deployment
+4. Copy the **REST API** credentials:
+
+```env
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+```
+
+### 4. Run
 
 ```bash
 npm run dev
@@ -86,7 +100,9 @@ Open [http://localhost:3000](http://localhost:3000).
 │   ├── signin/page.js       # Sign in
 │   ├── signup/page.js       # Sign up
 │   ├── agents/[id]/page.js  # Individual agent pages
-│   └── api/auth/            # Auth API routes
+│   └── api/
+│       ├── auth/            # Auth API routes
+│       └── generate-image/  # Image generation (authenticated)
 ├── components/
 │   ├── AgentCard.js         # Agent card component
 │   ├── Navbar.js            # Navigation bar
@@ -96,8 +112,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ├── data/agents.js           # Agent metadata
 ├── lib/
 │   ├── firebase.js          # Client Firebase SDK
-│   └── firebase-admin.js    # Admin Firebase SDK
-├── middleware.js             # Route protection + JWT verification
+│   ├── firebase-admin.js    # Admin Firebase SDK
+│   ├── rateLimit.js         # Upstash rate limiter
+│   └── upstash.js           # Redis client
+├── middleware.js             # Route protection + rate limiting
 ├── public/
 │   └── land.mp4             # Background video
 └── scripts/migrate.js       # Firestore migration script
@@ -105,13 +123,35 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deployment
 
-Any Node.js hosting works. For Vercel:
+### Vercel (Recommended)
+
+1. Push to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables in Project Settings
+4. Deploy
 
 ```bash
 npx vercel
 ```
 
-Make sure to add your `.env.local` variables to your hosting platform's environment variables.
+### Environment Variables for Vercel
+
+Add these to your Vercel project settings:
+
+| Variable | Source |
+|----------|--------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Console |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Console |
+| `FIREBASE_PROJECT_ID` | Firebase Service Account |
+| `FIREBASE_CLIENT_EMAIL` | Firebase Service Account |
+| `FIREBASE_PRIVATE_KEY` | Firebase Service Account |
+| `HUGGINGFACE_API_KEY` | Hugging Face |
+| `UPSTASH_REDIS_REST_URL` | Upstash Console |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Console |
 
 ## License
 

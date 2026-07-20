@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { InferenceClient } from "@huggingface/inference";
+import { getAdminAuth } from "@/lib/firebase-admin";
 
 const HF_MODEL = "black-forest-labs/FLUX.1-dev";
 
@@ -17,6 +18,16 @@ async function generateWithProvider(client, provider, prompt, negative_prompt, w
 }
 
 export async function POST(request) {
+  const token = request.cookies.get("token")?.value;
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    await getAdminAuth().verifySessionCookie(token);
+  } catch {
+    return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  }
+
   const apiKey = process.env.HUGGINGFACE_API_KEY;
 
   if (!apiKey) {

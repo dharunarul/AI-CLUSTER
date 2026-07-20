@@ -20,19 +20,14 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {
-    const isImageGen = pathname === "/api/generate-image";
-    const { allowed, retryAfter } = rateLimit(request, {
-      windowMs: 60000,
-      max: isImageGen ? 10 : 30,
+    const { allowed } = await rateLimit(request, {
+      isImageGen: pathname === "/api/generate-image",
     });
 
     if (!allowed) {
       return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
         status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(retryAfter),
-        },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
